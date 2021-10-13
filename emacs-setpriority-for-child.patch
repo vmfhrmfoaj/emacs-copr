@@ -1,0 +1,23 @@
+diff --git a/src/callproc.c b/src/callproc.c
+index e44e243..0bb86f3 100644
+--- a/src/callproc.c
++++ b/src/callproc.c
+@@ -26,6 +26,7 @@ along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
+ #include <unistd.h>
+ 
+ #include <sys/file.h>
++#include <sys/resource.h>
+ #include <fcntl.h>
+ 
+ #include "lisp.h"
+@@ -1413,6 +1414,10 @@ emacs_spawn (pid_t *newpid, int std_in, int std_out, int std_err,
+       eassert (0 < vfork_error);
+       return vfork_error;
+     }
++  else
++    {
++      setpriority(PRIO_PROCESS, pid, 0);
++    }
+ 
+   eassert (0 < pid);
+   *newpid = pid;

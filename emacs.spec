@@ -1,6 +1,8 @@
 %global _hardened_build 1
 
-%global commit      08bb4f5301e01181ca71e9fbd0a65218fc39b46d
+%global optflags %(echo %{optflags} | sed 's/-O[0-3]/-O3/')
+
+%global commit      bc928c797ec1f3ccca36a31d35cf25a92e62cd3d
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 %global commit_date 20210929
 %global gitrel      .%{commit_date}.git%{shortcommit}
@@ -13,7 +15,7 @@
 Summary:       GNU Emacs text editor
 Name:          emacs
 Epoch:         1
-Version:       28.0.50
+Version:       28.0.60
 Release:       1%{gitrel}%{?dist}
 License:       GPLv3+ and CC0-1.0
 URL:           http://www.gnu.org/software/emacs/
@@ -34,6 +36,8 @@ Source9:       emacs.service
 
 Patch1:        emacs-spellchecker.patch
 Patch2:        emacs-system-crypto-policies.patch
+Patch3:        emacs-setpriority.patch
+Patch4:        emacs-setpriority-for-child.patch
 
 BuildRequires: gcc
 BuildRequires: atk-devel
@@ -202,6 +206,8 @@ Development header files for Emacs.
 
 %patch1 -p1 -b .spellchecker
 %patch2 -p1 -b .system-crypto-policies
+%patch3 -p1 -b .setpriority
+%patch4 -p1 -b .setpriority-for-child
 
 ./autogen.sh
 
@@ -241,10 +247,10 @@ LDFLAGS=-Wl,-z,relro;  export LDFLAGS;
 %configure --with-dbus --with-gif --with-jpeg --with-png --with-rsvg \
             --with-tiff --with-xft --with-xpm --with-gpm=no \
             --with-xwidgets --with-modules --with-harfbuzz --with-cairo --with-json \
-            --with-pgtk --with-native-compilation --enable-link-time-optimization
+            --with-native-compilation --enable-link-time-optimization
 
-%make_build NATIVE_FULL_AOT=1 bootstrap
-%{setarch} %make_build
+%make_build NATIVE_FULL_AOT=1 BYTE_COMPILE_EXTRA_FLAGS='--eval "(setq comp-speed 3 native-comp-speed 3)"' bootstrap
+%{setarch} %make_build BYTE_COMPILE_EXTRA_FLAGS='--eval "(setq comp-speed 3 native-comp-speed 3)"'
 cd ..
 
 # # Sorted list of info files
@@ -417,6 +423,11 @@ rm -rf %{buildroot}%{prefix}/lib/debug/usr/libexec/emacs/28.0.50
 %preun
 %{_sbindir}/alternatives --remove emacs %{_bindir}/emacs-%{version}
 
+%post
+if [ -f /usr/sbin/setcap ]; then
+    setcap cap_sys_nice+ep %{_bindir}/emacs-%{version}
+fi
+
 %posttrans
 %{_sbindir}/alternatives --install %{_bindir}/emacs emacs %{_bindir}/emacs-%{version} 80
 
@@ -460,7 +471,6 @@ rm -rf %{buildroot}%{prefix}/lib/debug/usr/libexec/emacs/28.0.50
 %{_datadir}/icons/hicolor/scalable/apps/emacs.svg
 %{_datadir}/icons/hicolor/scalable/apps/emacs.ico
 %{_datadir}/icons/hicolor/scalable/mimetypes/emacs-document.svg
-%{_datadir}/glib-2.0/schemas/org.gnu.emacs.defaults.gschema.xml
 
 %if %{enable_lucid}
 %files lucid

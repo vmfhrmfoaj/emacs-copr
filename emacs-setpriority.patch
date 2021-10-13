@@ -1,0 +1,21 @@
+diff --git a/src/emacs.c b/src/emacs.c
+index 07e40fd..46f5baf 100644
+--- a/src/emacs.c
++++ b/src/emacs.c
+@@ -26,6 +26,7 @@ along with GNU Emacs.  If not, see <https://www.gnu.org/licenses/>.  */
+ #include <stdlib.h>
+ 
+ #include <sys/file.h>
++#include <sys/resource.h>
+ #include <sys/stat.h>
+ #include <unistd.h>
+ 
+@@ -960,6 +961,8 @@ main (int argc, char **argv)
+ #endif
+   char *ch_to_dir = 0;
+ 
++  setpriority(PRIO_PROCESS, getpid(), -5);
++
+   /* If we use --chdir, this records the original directory.  */
+   char const *original_pwd = 0;
+ 
