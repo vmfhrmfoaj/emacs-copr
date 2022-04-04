@@ -1,11 +1,7 @@
 %global _hardened_build 1
 
 %global optflags %(echo %{optflags} | sed 's/-O[0-3]/-O3/')
-
-%global commit      bc928c797ec1f3ccca36a31d35cf25a92e62cd3d
-%global shortcommit %(c=%{commit}; echo ${c:0:7})
-%global commit_date 20210929
-%global gitrel      .%{commit_date}.git%{shortcommit}
+%define version 28.1
 
 # disable these for now until .pdmp is fixed
 %global enable_lucid 0
@@ -15,11 +11,11 @@
 Summary:       GNU Emacs text editor
 Name:          emacs
 Epoch:         1
-Version:       28.0.60
-Release:       1%{gitrel}%{?dist}
+Version:       %{version}
+Release:       1%{?dist}
 License:       GPLv3+ and CC0-1.0
 URL:           http://www.gnu.org/software/emacs/
-Source0:       https://github.com/flatwhatson/emacs/archive/%{commit}/%{name}-%{shortcommit}.tar.gz
+Source0:       https://ftpmirror.gnu.org/emacs/emacs-%{version}.tar.gz
 # generate the keyring via:
 # wget https://ftp.gnu.org/gnu/gnu-keyring.gpg
 # gpg2 --import gnu-keyring.gpg
@@ -202,7 +198,7 @@ Summary: Development header files for Emacs
 Development header files for Emacs.
 
 %prep
-%setup -q -n emacs-%{commit}
+%setup -q -n emacs-%{version}
 
 %patch1 -p1 -b .spellchecker
 %patch2 -p1 -b .system-crypto-policies
@@ -239,7 +235,7 @@ export CFLAGS="-DMAIL_USE_LOCKF %{build_cflags}"
 %set_build_flags
 
 # Build GTK+ binary
-mkdir build-gtk && cd build-gtk
+mkdir build && cd build
 ln -s ../configure .
 
 LDFLAGS=-Wl,-z,relro;  export LDFLAGS;
@@ -315,7 +311,7 @@ cat > macros.emacs << EOF
 EOF
 
 %install
-cd build-gtk
+cd build
 %make_install
 
 cd ..
@@ -324,15 +320,8 @@ cd ..
 rm %{buildroot}%{_bindir}/emacs
 touch %{buildroot}%{_bindir}/emacs
 
-# Remove emacs.pdmp from common
-rm %{buildroot}%{emacs_libexecdir}/emacs.pdmp
-
-# Do not compress the files which implement compression itself (#484830)
-gunzip %{buildroot}%{_datadir}/emacs/%{version}/lisp/jka-compr.el.gz
-gunzip %{buildroot}%{_datadir}/emacs/%{version}/lisp/jka-cmpr-hook.el.gz
-
 # Install emacs.pdmp of the emacs with GTK+
-install -p -m 0644 build-gtk/src/emacs.pdmp %{buildroot}%{_bindir}/emacs-%{version}.pdmp
+install -p -m 0644 build/src/emacs.pdmp %{buildroot}%{_bindir}/emacs-%{version}.pdmp
 
 %if %{enable_lucid}
 # Install the emacs with LUCID toolkit
@@ -343,9 +332,6 @@ install -p -m 0755 build-lucid/src/emacs %{buildroot}%{_bindir}/emacs-%{version}
 # Install the emacs without X
 install -p -m 0755 build-nox/src/emacs %{buildroot}%{_bindir}/emacs-%{version}-nox
 %endif
-
-# Make sure movemail isn't setgid
-chmod 755 %{buildroot}%{emacs_libexecdir}/movemail
 
 mkdir -p %{buildroot}%{site_lisp}
 install -p -m 0644 %SOURCE5 %{buildroot}%{site_lisp}/site-start.el
